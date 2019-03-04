@@ -22,11 +22,14 @@ A million repetitions of "a"
 
 #define SHA1HANDSOFF
 
+
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 
 #include "libsha1.h"
+
+
 
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
@@ -182,6 +185,7 @@ void SHA1Final(unsigned char digest[20], SHA1_CTX* context)
     }
 #endif
     c = 0200;
+    printf("\n\r");
     SHA1Update(context, &c, 1);
     while ((context->count[0] & 504) != 448) {
 	c = 0000;

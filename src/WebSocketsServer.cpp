@@ -78,12 +78,28 @@ void WebSocketsServer::begin(void) {
     DEBUG_WEBSOCKETS("[WS-Server] Server Started.\n");
 }
 
+void WebSocketsServer::process(void) {
+    EthernetClient tmp;
+
+    tmp = _server->available();
+    if(tmp){
+        // we have a new client
+        // DEBUG_WEBSOCKETS("[WS-Client] process a new client!\n");
+        newClient(&tmp);
+    }
+    else{
+        handleClientData();
+    }
+}
+
+
 /**
  * called in arduino loop
  */
 void WebSocketsServer::loop(void) {
-    handleNewClients();
-    handleClientData();
+    process();
+    // handleNewClients();
+    // handleClientData();
 }
 
 /**
@@ -240,7 +256,7 @@ void WebSocketsServer::disconnect(uint8_t num) {
     }
 }
 
-#if (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266)
+// #if (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266)
 /**
  * get an IP for a client
  * @param num uint8_t client id
@@ -256,7 +272,7 @@ IPAddress WebSocketsServer::remoteIP(uint8_t num) {
 
     return IPAddress();
 }
-#endif
+// #endif
 
 //#################################################################################
 //#################################################################################
@@ -424,6 +440,51 @@ void WebSocketsServer::handleNewClients(void) {
 #endif
 }
 
+
+///**
+// * handle new client connection
+// * @param client
+// */
+bool WebSocketsServer::newClient(WEBSOCKETS_NETWORK_CLASS * TCPclient) {
+    WSclient_t * client = &_clients[0];
+    uint8_t i;
+
+    i = TCPclient->getSockNum();
+    client += i;
+    if(client->tcp == NULL){
+        // we got a new connection, but verify
+        if(client->status == WSC_NOT_CONNECTED){
+            client->num = i;
+            client->status = WSC_HEADER;
+            client->tcp = new WEBSOCKETS_NETWORK_CLASS(_server->available());
+            client->tcp->setTimeout(WEBSOCKETS_TCP_TIMEOUT);
+            // please don't remove this printf here, it will stop working
+            // yes it sounds crazy, which I had a better debug way to know the problem
+            Serial.printf("[WS-Server][%d] new client - change to header state!\r\n", client->num);
+            // DEBUG_WEBSOCKETS("[WS-Server][%d] new client - change to header state!\r\n", client->num);
+        }else{
+            // should we disconnect?
+            delay(0);
+        }
+    }
+    int len = client->tcp->available();
+    if(len > 0) {
+        switch(client->status) {
+            case WSC_HEADER:
+                handleHeader(client);
+                break;
+            case WSC_CONNECTED:
+                WebSockets::handleWebsocket(client);
+                break;
+            default:
+                WebSockets::clientDisconnect(client, 1002);
+                break;
+        }
+    }
+    return true;
+}
+
+
 /**
  * Handel incomming data from Client
  */
@@ -465,7 +526,7 @@ void WebSocketsServer::handleHeader(WSclient_t * client) {
     headerLine.trim(); // remove \r
 
     if(headerLine.length() > 0) {
-        DEBUG_WEBSOCKETS("[WS-Server][%d][handleHeader] RX: %s\n", client->num, headerLine.c_str());
+        // DEBUG_WEBSOCKETS("[WS-Server][%d][handleHeader] RX: %s\n", client->num, headerLine.c_str());
 
         // websocket request starts allways with GET see rfc6455
         if(headerLine.startsWith("GET ")) {
@@ -524,12 +585,12 @@ void WebSocketsServer::handleHeader(WSclient_t * client) {
 
         if(ok) {
 
-            DEBUG_WEBSOCKETS("[WS-Server][%d][handleHeader] Websocket connection incomming.\n", client->num);
+            // DEBUG_WEBSOCKETS("[WS-Server][%d][handleHeader] Websocket connection incomming.\n", client->num);
 
             // generate Sec-WebSocket-Accept key
             String sKey = acceptKey(client->cKey);
 
-            DEBUG_WEBSOCKETS("[WS-Server][%d][handleHeader]  - sKey: %s\n", client->num, sKey.c_str());
+            // DEBUG_WEBSOCKETS("[WS-Server][%d][handleHeader]  - sKey: %s\n", client->num, sKey.c_str());
 
             client->status = WSC_CONNECTED;
 

@@ -40,10 +40,7 @@ WebSocketsClient::~WebSocketsClient() {
 void WebSocketsClient::begin(const char *host, uint16_t port, const char * url) {
     _host = host;
     _port = port;
-#if (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266)
-    _fingerprint = "";
-#endif
-    
+
     _client.num = 0;
     _client.status = WSC_NOT_CONNECTED;
     _client.tcp = NULL;
@@ -74,14 +71,13 @@ void WebSocketsClient::begin(String host, uint16_t port, String url) {
 }
 
 #if (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266)
-void WebSocketsClient::beginSSL(const char *host, uint16_t port, const char * url, const char * fingerprint) {
+void WebSocketsClient::beginSSL(const char *host, uint16_t port, const char * url) {
     begin(host, port, url);
     _client.isSSL = true;
-    _fingerprint = fingerprint;
 }
 
-void WebSocketsClient::beginSSL(String host, uint16_t port, String url, String fingerprint) {
-    beginSSL(host.c_str(), port, url.c_str(), fingerprint.c_str());
+void WebSocketsClient::beginSSL(String host, uint16_t port, String url) {
+    beginSSL(host.c_str(), port, url.c_str());
 }
 #endif
 
@@ -128,14 +124,6 @@ void WebSocketsClient::loop(void) {
 
 #if (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266)
             _client.tcp->setNoDelay(true);
-
-            if(_client.isSSL && _fingerprint.length()) {
-                if(!_client.ssl->verify(_fingerprint.c_str(), _host.c_str())) {
-                    DEBUG_WEBSOCKETS("[WS-Client] certificate mismatch\n");
-                    WebSockets::clientDisconnect(&_client, 1000);
-                    return;
-                }
-            }
 #endif
 
             // send Header to Server
@@ -358,9 +346,7 @@ void WebSocketsClient::sendHeader(WSclient_t * client) {
 
     client->cKey = base64_encode(&randomKey[0], 16);
 
-#ifndef NODEBUG_WEBSOCKETS
     unsigned long start = micros();
-#endif
 
     String handshake =  "GET " + client->cUrl + " HTTP/1.1\r\n"
                         "Host: " + _host + "\r\n"
@@ -452,7 +438,7 @@ void WebSocketsClient::handleHeader(WSclient_t * client) {
                 default:   ///< Server dont unterstand requrst
                     ok = false;
                     DEBUG_WEBSOCKETS("[WS-Client][handleHeader] serverCode is not 101 (%d)\n", client->cCode);
-                    clientDisconnect(client);
+                    clientDisconnect(&_client);
                     break;
             }
         }

@@ -28,7 +28,7 @@
 #include <Arduino.h>
 #include "WebSockets.h"
 
-#define WEBSOCKETS_SERVER_CLIENT_MAX  (5)
+#define WEBSOCKETS_SERVER_CLIENT_MAX  (4)
 
 
 
@@ -43,9 +43,11 @@ public:
 
         void begin(void);
         void loop(void);
+        void process(void);
 
         void onEvent(WebSocketServerEvent cbEvent);
 
+        String testAcceptKey(String clientKey) { return acceptKey(clientKey);};
 
         void sendTXT(uint8_t num, uint8_t * payload, size_t length = 0, bool headerToPayload = false);
         void sendTXT(uint8_t num, const uint8_t * payload, size_t length = 0);
@@ -68,9 +70,9 @@ public:
         void disconnect(void);
         void disconnect(uint8_t num);
 
-#if (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266)
+// #if (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266)
         IPAddress remoteIP(uint8_t num);
-#endif
+// #endif
 
 protected:
         uint16_t _port;
@@ -88,6 +90,8 @@ protected:
 
         void handleNewClients(void);
         void handleClientData(void);
+
+        bool newClient(WEBSOCKETS_NETWORK_CLASS * TCPclient);
 
         void handleHeader(WSclient_t * client);
 

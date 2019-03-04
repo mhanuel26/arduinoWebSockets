@@ -27,19 +27,19 @@
 
 #include <Arduino.h>
 
-//#define DEBUG_WEBSOCKETS(...) Serial1.printf( __VA_ARGS__ )
+// #define DEBUG_WEBSOCKETS(...) Serial.printf( __VA_ARGS__ )
 
 #ifndef DEBUG_WEBSOCKETS
 #define DEBUG_WEBSOCKETS(...)
-#define NODEBUG_WEBSOCKETS
 #endif
+
+#define WIZSSIZE 4096
 
 #ifdef ESP8266
 #define WEBSOCKETS_MAX_DATA_SIZE  (15*1024)
-#define WEBSOCKETS_USE_BIG_MEM
 #else
-//atmega328p has only 2KB ram!
-#define WEBSOCKETS_MAX_DATA_SIZE  (1024)
+//Spresense has lot of RAM, so we use the same value of socket size
+#define WEBSOCKETS_MAX_DATA_SIZE  (WIZSSIZE)
 #endif
 
 #define WEBSOCKETS_TCP_TIMEOUT    (1500)
@@ -47,6 +47,7 @@
 #define NETWORK_ESP8266     (1)
 #define NETWORK_W5100       (2)
 #define NETWORK_ENC28J60    (3)
+
 
 
 // select Network type based
